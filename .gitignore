@@ -1,0 +1,48 @@
+# Build Outputs
+build/
+bin/
+out/
+
+# CMake Artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Object files and Libraries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+
+# Executables and Debug Files
+*.exe
+*.pdb
+*.ilk
+*.exp
+
+# IDE Specific
+.vscode/
+.vs/
+*.swp
+*.swo
+*.user
+*.suo
+
+# Project Specific Logs and Traces
+*_trace.txt
+diag_*.txt
+diagnostics.txt
+*.log
+
+# Project Assets (optional, but keep progress file private)
+assets/progress.json
