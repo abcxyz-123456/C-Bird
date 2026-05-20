@@ -711,42 +711,46 @@ int main(void) {
                 CommitLevelWin(selectedLevelIndex);
             }
 
-            bool canShoot = !levelWon && (flyingBird == NULL || !flyingBird->active);
-            if (canShoot && currentBirdIdx < birdCount) {
+            if (!levelWon && currentBirdIdx < birdCount) {
                 slingshot.activeBird = birdQueue[currentBirdIdx];
                 Entity *newBird = Slingshot_Update(&slingshot, entities, physics, vMouse);
                 if (newBird) {
                     flyingBird = newBird;
                     currentBirdIdx++;
                 }
-            } else if (flyingBird && flyingBird->active) {
-                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !flyingBird->abilityUsed) {
-                    flyingBird->abilityUsed = true;
-                    switch (flyingBird->subType.birdType) {
-                        case BIRD_BLUE: {
-                            Vector2 v1 = Vector2Rotate(flyingBird->vel, 15 * DEG2RAD);
-                            Vector2 v2 = Vector2Rotate(flyingBird->vel, -15 * DEG2RAD);
-                            Entity *b1 = Entities_AddBird(entities, flyingBird->pos, BIRD_BLUE);
-                            Entity *b2 = Entities_AddBird(entities, flyingBird->pos, BIRD_BLUE);
-                            if (b1) {
-                                b1->vel = v1;
-                                b1->abilityUsed = true;
+            }
+
+            if (flyingBird && flyingBird->active && !flyingBird->abilityUsed) {
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                    bool clickedSlingshot = CheckCollisionPointCircle(vMouse, slingshot.basePos, 50.0f);
+                    if (!clickedSlingshot && !slingshot.isDragging) {
+                        flyingBird->abilityUsed = true;
+                        switch (flyingBird->subType.birdType) {
+                            case BIRD_BLUE: {
+                                Vector2 v1 = Vector2Rotate(flyingBird->vel, 15 * DEG2RAD);
+                                Vector2 v2 = Vector2Rotate(flyingBird->vel, -15 * DEG2RAD);
+                                Entity *b1 = Entities_AddBird(entities, flyingBird->pos, BIRD_BLUE);
+                                Entity *b2 = Entities_AddBird(entities, flyingBird->pos, BIRD_BLUE);
+                                if (b1) {
+                                    b1->vel = v1;
+                                    b1->abilityUsed = true;
+                                }
+                                if (b2) {
+                                    b2->vel = v2;
+                                    b2->abilityUsed = true;
+                                }
+                                break;
                             }
-                            if (b2) {
-                                b2->vel = v2;
-                                b2->abilityUsed = true;
-                            }
-                            break;
+                            case BIRD_YELLOW:
+                                flyingBird->vel = Vector2Scale(flyingBird->vel, 2.5f);
+                                break;
+                            case BIRD_BLACK:
+                                Physics_ApplyExplosion(entities, flyingBird->pos, 150.0f, 600.0f);
+                                flyingBird->active = false;
+                                break;
+                            default:
+                                break;
                         }
-                        case BIRD_YELLOW:
-                            flyingBird->vel = Vector2Scale(flyingBird->vel, 2.5f);
-                            break;
-                        case BIRD_BLACK:
-                            Physics_ApplyExplosion(entities, flyingBird->pos, 150.0f, 600.0f);
-                            flyingBird->active = false;
-                            break;
-                        default:
-                            break;
                     }
                 }
             }
@@ -767,12 +771,23 @@ int main(void) {
 
                 if (!levelWon &&
                     currentBirdIdx < birdCount &&
-                    (flyingBird == NULL || !flyingBird->active) &&
                     !slingshot.isDragging) {
-                    DrawCircleV(slingshot.basePos, 16.0f, BirdTypeColor(birdQueue[currentBirdIdx]));
+                    Color c = RED;
+                    float radius = 16.0f;
+                    switch (birdQueue[currentBirdIdx]) {
+                        case BIRD_BLUE:   c = SKYBLUE; radius = 10.0f; break;
+                        case BIRD_YELLOW: c = YELLOW;  radius = 16.0f; break;
+                        case BIRD_BLACK:  c = BLACK;   radius = 20.0f; break;
+                        case BIRD_RED:
+                        default:          c = RED;     radius = 16.0f; break;
+                    }
+                    DrawCircleV(slingshot.basePos, radius, c);
+                    if (birdQueue[currentBirdIdx] == BIRD_BLACK) {
+                        DrawCircleV(Vector2Add(slingshot.basePos, (Vector2){ 0, -10 }), 5, YELLOW);
+                    }
                 }
 
-                for (int i = currentBirdIdx + ((flyingBird && flyingBird->active) ? 0 : 1); i < birdCount; i++) {
+                for (int i = currentBirdIdx + 1; i < birdCount; i++) {
                     Color c = BirdTypeColor(birdQueue[i]);
                     DrawCircle(100 - (i - currentBirdIdx) * 30, 705, 12, c);
                 }

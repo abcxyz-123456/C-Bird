@@ -248,26 +248,31 @@ Entity* Entities_AddBlock(EntityManager *em, Vector2 pos, Vector2 size, BlockTyp
     e->size = size;
     e->angle = angle;
     e->subType.blockType = type;
-    e->mass = (type == BLOCK_STONE) ? 8.0f : 2.5f;
+
+    switch (type) {
+        case BLOCK_STONE:
+            e->mass = 15.0f;
+            e->color = GRAY;
+            e->health = 250.0f;
+            e->friction = 0.65f;
+            break;
+        case BLOCK_WOOD:
+            e->mass = 5.0f;
+            e->color = DARKBROWN;
+            e->health = 80.0f;
+            e->friction = 0.68f;
+            break;
+        case BLOCK_GLASS:
+            e->mass = 3.2f;
+            e->color = (Color){ 150, 230, 255, 180 };
+            e->health = 25.0f;
+            e->friction = 0.48f;
+            break;
+    }
+
     e->invMass = 1.0f/e->mass;
     e->radius = Vector2Length(Vector2Scale(size, 0.5f));
     e->restitution = 0.1f;
-    e->friction = 0.6f;
-
-    switch (type) {
-        case BLOCK_WOOD:
-            e->color = DARKBROWN;
-            e->health = 80.0f;
-            break;
-        case BLOCK_STONE:
-            e->color = GRAY;
-            e->health = 250.0f;
-            break;
-        case BLOCK_GLASS:
-            e->color = (Color){ 150, 230, 255, 180 };
-            e->health = 25.0f;
-            break;
-    }
 
     return e;
 }
@@ -281,6 +286,7 @@ Entity* Entities_AddPlatform(EntityManager *em, Vector2 pos, Vector2 size) {
     e->size = size;
     e->mass = 0.0f;
     e->invMass = 0.0f;
+    e->friction = 0.92f;
     e->color = DARKGRAY;
     return e;
 }
@@ -453,6 +459,8 @@ static void ResolveDynamicCollision(Entity *a, Entity *b) {
 }
 
 static void ResolveCollision(Entity *a, Entity *b) {
+    if (a->type == ENTITY_BIRD && b->type == ENTITY_BIRD) return;
+
     if (a->type == ENTITY_PLATFORM || b->type == ENTITY_PLATFORM) {
         Entity *platform = (a->type == ENTITY_PLATFORM) ? a : b;
         Entity *obj = (a->type == ENTITY_PLATFORM) ? b : a;
@@ -485,6 +493,10 @@ void Entities_Update(EntityManager *em, float dt) {
                     e->angVel *= 0.85f;
                     if (fabsf(e->angVel) < 0.02f) {
                         e->angVel = 0.0f;
+                    }
+                    e->vel.x *= 0.90f;
+                    if (fabsf(e->vel.x) < 0.05f) {
+                        e->vel.x = 0.0f;
                     }
                 }
                 if (e->angle > PI) e->angle -= 2.0f * PI;

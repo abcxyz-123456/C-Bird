@@ -55,6 +55,18 @@ void Slingshot_Draw(Slingshot *s) {
     DrawRectangleV((Vector2){ s->basePos.x - 5, s->basePos.y }, (Vector2){ 10, 100 }, DARKBROWN);
     if (s->isDragging) {
         DrawLineEx(s->basePos, s->dragPos, 4, (Color){ 100, 50, 20, 255 });
-        DrawCircleV(s->dragPos, 15, RED);
+        Color c = RED;
+        float radius = 16.0f;
+        switch (s->activeBird) {
+            case BIRD_BLUE:   c = SKYBLUE; radius = 10.0f; break;
+            case BIRD_YELLOW: c = YELLOW;  radius = 16.0f; break;
+            case BIRD_BLACK:  c = BLACK;   radius = 20.0f; break;
+            case BIRD_RED:
+            default:          c = RED;     radius = 16.0f; break;
+        }
+        DrawCircleV(s->dragPos, radius, c);
+        if (s->activeBird == BIRD_BLACK) {
+            DrawCircleV(Vector2Add(s->dragPos, (Vector2){ 0, -10 }), 5, YELLOW);
+        }
     }
 }
