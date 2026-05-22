@@ -31,6 +31,8 @@ typedef struct {
     int stars[TOTAL_LEVELS];
 } LevelProgress;
 
+Font gFont;
+
 static BirdType birdQueue[MAX_ENTITIES];
 static int birdCount = 0;
 static int currentBirdIdx = 0;
@@ -106,7 +108,7 @@ static void DrawStarsRow(Vector2 center, int stars, int total, float spacing, fl
 static int FitFontSize(const char *text, int preferred, int min, float maxWidth) {
     int fontSize = preferred;
 
-    while (fontSize > min && MeasureText(text, fontSize) > maxWidth) {
+    while (fontSize > min && MeasureTextEx(gFont, text, (float)fontSize, 1.0f).x > maxWidth) {
         fontSize--;
     }
 
@@ -115,19 +117,19 @@ static int FitFontSize(const char *text, int preferred, int min, float maxWidth)
 
 static void DrawTextLeftFitted(const char *text, Rectangle bounds, int preferred, int min, Color color) {
     int fontSize = FitFontSize(text, preferred, min, bounds.width);
-    DrawText(text, (int)bounds.x, (int)(bounds.y + (bounds.height - fontSize) * 0.5f), fontSize, color);
+    DrawTextEx(gFont, text, (Vector2){ (float)(int)bounds.x, (float)(int)(bounds.y + (bounds.height - fontSize) * 0.5f) }, (float)fontSize, 1.0f, color);
 }
 
 static void DrawTextRightFitted(const char *text, Rectangle bounds, int preferred, int min, Color color) {
     int fontSize = FitFontSize(text, preferred, min, bounds.width);
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, (int)(bounds.x + bounds.width - textWidth), (int)(bounds.y + (bounds.height - fontSize) * 0.5f), fontSize, color);
+    int textWidth = (int)MeasureTextEx(gFont, text, (float)fontSize, 1.0f).x;
+    DrawTextEx(gFont, text, (Vector2){ (float)(int)(bounds.x + bounds.width - textWidth), (float)(int)(bounds.y + (bounds.height - fontSize) * 0.5f) }, (float)fontSize, 1.0f, color);
 }
 
 static void DrawTextCenteredFitted(const char *text, Rectangle bounds, int preferred, int min, Color color) {
     int fontSize = FitFontSize(text, preferred, min, bounds.width);
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, (int)(bounds.x + (bounds.width - textWidth) * 0.5f), (int)(bounds.y + (bounds.height - fontSize) * 0.5f), fontSize, color);
+    int textWidth = (int)MeasureTextEx(gFont, text, (float)fontSize, 1.0f).x;
+    DrawTextEx(gFont, text, (Vector2){ (float)(int)(bounds.x + (bounds.width - textWidth) * 0.5f), (float)(int)(bounds.y + (bounds.height - fontSize) * 0.5f) }, (float)fontSize, 1.0f, color);
 }
 
 static void DrawTextBlockFitted(Rectangle bounds, const char *const *lines, int lineCount, int preferred, int min, int spacing, Color color) {
@@ -144,30 +146,59 @@ static void DrawTextBlockFitted(Rectangle bounds, const char *const *lines, int 
     float y = bounds.y + (bounds.height - totalHeight) * 0.5f;
 
     for (int i = 0; i < lineCount; i++) {
-        DrawText(lines[i], (int)bounds.x, (int)y, fontSize, color);
+        DrawTextEx(gFont, lines[i], (Vector2){ (float)(int)bounds.x, (float)(int)y }, (float)fontSize, 1.0f, color);
         y += fontSize + spacing;
     }
 }
 
 static void InitLevelEntries(void) {
     for (int i = 0; i < TOTAL_LEVELS; i++) {
-        snprintf(gLevels[i].title, sizeof(gLevels[i].title), "Level %d", i + 1);
-        snprintf(gLevels[i].subtitle, sizeof(gLevels[i].subtitle), "Coming soon");
+        snprintf(gLevels[i].title, sizeof(gLevels[i].title), "第%d关", i + 1);
+        snprintf(gLevels[i].subtitle, sizeof(gLevels[i].subtitle), "敬请期待");
         gLevels[i].path = NULL;
         gLevels[i].accent = LevelAccentForIndex(i);
         gLevels[i].available = false;
         memset(&levelPreviewConfigs[i], 0, sizeof(LevelConfig));
     }
 
-    snprintf(gLevels[0].title, sizeof(gLevels[0].title), "Level 1");
-    snprintf(gLevels[0].subtitle, sizeof(gLevels[0].subtitle), "Classic starter layout");
-    gLevels[0].path = "assets/level1.json";
-    gLevels[0].available = true;
+    struct TempLevel {
+        const char *title;
+        const char *subtitle;
+        const char *path;
+    } tempLevels[TOTAL_LEVELS] = {
+        {"新手入门", "单层木质结构，轻松击破", "assets/levels/level1.json"},
+        {"双塔低鸣", "两座简易单层木塔，双重考验", "assets/levels/level2.json"},
+        {"玻璃工坊", "利用蓝鸟分裂瞬间击碎玻璃", "assets/levels/level3.json"},
+        {"三足鼎立", "并排的三座哨所，需要多角度瞄准", "assets/levels/level4.json"},
+        {"疾风突袭", "黄鸟具有极强的冲锋穿透力", "assets/levels/level5.json"},
+        {"石破天惊", "石质立柱登场，黄鸟加速突破", "assets/levels/level6.json"},
+        {"轰天雷霆", "黑鸟威力惊人，体验爆炸艺术", "assets/levels/level7.json"},
+        {"齐头并进", "结构复杂的连排哨所", "assets/levels/level8.json"},
+        {"铁壁壁垒", "高密度的坚硬石质地基", "assets/levels/level9.json"},
+        {"步步高升", "梯形渐进式堡垒，逐层推进", "assets/levels/level10.json"},
+        {"爆破艺术家", "多只黑鸟在手，摧毁所有顽石", "assets/levels/level11.json"},
+        {"玻璃迷宫", "隐藏在石柱背后的玻璃核心", "assets/levels/level12.json"},
+        {"巍峨石塔", "四层高耸的纯石结构大考验", "assets/levels/level13.json"},
+        {"坚实长城", "一字排开的双层坚实防线", "assets/levels/level14.json"},
+        {"双璧重叠", "并立的两座高耸三层城堡", "assets/levels/level15.json"},
+        {"空投轰炸", "多城堡防空火力压制", "assets/levels/level16.json"},
+        {"险阻重重", "限制小鸟数量，追求极致精准度", "assets/levels/level17.json"},
+        {"三圣回廊", "前沿与核心相扣的立体防线", "assets/levels/level18.json"},
+        {"坚守要塞", "石材与玻璃结合的混合防御", "assets/levels/level19.json"},
+        {"炸弹狂欢", "全黑鸟终极爆破盛宴", "assets/levels/level20.json"},
+        {"极速穿透", "全黄鸟闪击战，极速刺穿石壁", "assets/levels/level21.json"},
+        {"碧波倾泻", "分裂蓝鸟如雨水般洗刷防线", "assets/levels/level22.json"},
+        {"石魔降世", "巨型四层石塔地狱挑战", "assets/levels/level23.json"},
+        {"泰山压顶", "宏伟的高耸石墙，坚不可摧", "assets/levels/level24.json"},
+        {"世纪大决战", "史诗级战役！16只小鸟齐心协力", "assets/levels/level25.json"}
+    };
 
-    snprintf(gLevels[1].title, sizeof(gLevels[1].title), "Level 2");
-    snprintf(gLevels[1].subtitle, sizeof(gLevels[1].subtitle), "Compact custom challenge");
-    gLevels[1].path = "assets/custom_level.json";
-    gLevels[1].available = true;
+    for (int i = 0; i < TOTAL_LEVELS; i++) {
+        snprintf(gLevels[i].title, sizeof(gLevels[i].title), "%s", tempLevels[i].title);
+        snprintf(gLevels[i].subtitle, sizeof(gLevels[i].subtitle), "%s", tempLevels[i].subtitle);
+        gLevels[i].path = tempLevels[i].path;
+        gLevels[i].available = true;
+    }
 }
 
 static void ResetProgressDefaults(void) {
@@ -235,7 +266,6 @@ static bool IsLevelLocked(int levelIndex) {
 
 static void EnsureSelectedLevelIsUnlocked(void) {
     if (!IsLevelLocked(selectedLevelIndex)) {
-        SyncLevelPageToSelection();
         return;
     }
 
@@ -391,33 +421,34 @@ static void DrawHomeScreen(int width, int height, GameScreen *screen, bool *exit
     Rectangle primaryButton = { hero.x + 56, hero.y + 432, 240, 58 };
     Rectangle secondaryButton = { hero.x + 322, hero.y + 432, 170, 58 };
     const char *copyLines[] = {
-        "A clean mouse-first menu and gentler physics",
-        "support a 25-stage campaign without the old",
-        "keyboard-only flow or crowded level browser."
+        "采用更便捷的纯鼠标操作与更轻快的物理引擎，",
+        "带你畅玩 25 关精彩战役！告别以往",
+        "繁琐的键盘输入和拥挤的选关界面。"
     };
 
     Gui_DrawCard(hero, 7.0f);
     DrawRectangleRounded(titlePanel, 0.14f, 16, ColorAlpha(MD_PRIMARY_CONTAINER, 0.95f));
     DrawRectangleRounded(copyPanel, 0.08f, 12, ColorAlpha(WHITE, 0.28f));
 
-    DrawTextLeftFitted("ANGRY BIRDS", (Rectangle){ hero.x + 72, hero.y + 86, 430, 60 }, 58, 42, MD_ON_SURFACE);
-    DrawTextLeftFitted("ORIGINAL EXPERIENCE", (Rectangle){ hero.x + 72, hero.y + 150, 430, 40 }, 34, 22, MD_PRIMARY);
+    DrawTextLeftFitted("愤怒的小鸟", (Rectangle){ hero.x + 72, hero.y + 86, 430, 60 }, 58, 42, MD_ON_SURFACE);
+    DrawTextLeftFitted("原汁原味体验", (Rectangle){ hero.x + 72, hero.y + 150, 430, 40 }, 34, 22, MD_PRIMARY);
     DrawTextBlockFitted((Rectangle){ copyPanel.x + 18, copyPanel.y + 10, copyPanel.width - 36, copyPanel.height - 20 },
                         copyLines, 3, 22, 16, 8, MD_ON_SURFACE_VARIANT);
 
     Gui_DrawCard(insight, 4.0f);
-    DrawTextLeftFitted("PROGRESS", (Rectangle){ insight.x + 26, insight.y + 22, insight.width - 52, 26 }, 20, 16, MD_PRIMARY);
-    DrawTextLeftFitted(TextFormat("%d / %d levels unlocked", levelProgress.unlockedLevels, TOTAL_LEVELS),
+    DrawTextLeftFitted("我的进度", (Rectangle){ insight.x + 26, insight.y + 22, insight.width - 52, 26 }, 20, 16, MD_PRIMARY);
+    DrawTextLeftFitted(TextFormat("已解锁关卡：%d / %d", levelProgress.unlockedLevels, TOTAL_LEVELS),
                        (Rectangle){ insight.x + 26, insight.y + 68, insight.width - 52, 28 }, 22, 14, MD_ON_SURFACE);
-    DrawTextLeftFitted(TextFormat("%d stars collected", GetTotalStarsEarned()),
+    DrawTextLeftFitted(TextFormat("已获得星星：%d 颗", GetTotalStarsEarned()),
                        (Rectangle){ insight.x + 26, insight.y + 118, insight.width - 52, 28 }, 22, 14, MD_ON_SURFACE);
-    DrawTextLeftFitted(TextFormat("%d pages of levels", GetPageCount()),
+    DrawTextLeftFitted(TextFormat("关卡共 %d 页", GetPageCount()),
                        (Rectangle){ insight.x + 26, insight.y + 168, insight.width - 52, 24 }, 18, 13, MD_ON_SURFACE_VARIANT);
 
-    if (DrawActionButton(primaryButton, "Select Level", MD_PRIMARY, MD_ON_PRIMARY)) {
+    if (DrawActionButton(primaryButton, "开始游戏", MD_PRIMARY, MD_ON_PRIMARY)) {
         *screen = SCREEN_LEVEL_SELECT;
+        EnsureSelectedLevelIsUnlocked();
     }
-    if (DrawActionButton(secondaryButton, "Quit", MD_SECONDARY_CONTAINER, MD_ON_SECONDARY_CONTAINER)) {
+    if (DrawActionButton(secondaryButton, "退出游戏", MD_SECONDARY_CONTAINER, MD_ON_SECONDARY_CONTAINER)) {
         *exitRequested = true;
     }
 }
@@ -456,7 +487,7 @@ static void DrawLevelPreview(Rectangle bounds, const LevelConfig *cfg, Color acc
         DrawCircle((int)preview.x + 42, (int)preview.y + 34, 10, ColorAlpha(accent, 0.28f));
         DrawCircle((int)preview.x + 76, (int)preview.y + 26, 7, ColorAlpha(accent, 0.20f));
         DrawCircle((int)preview.x + 104, (int)preview.y + 40, 12, ColorAlpha(accent, 0.14f));
-        DrawText("Soon", (int)preview.x + 138, (int)preview.y + 24, 18, ColorAlpha(MD_ON_SURFACE_VARIANT, 0.9f));
+        DrawTextEx(gFont, "敬请期待", (Vector2){ (float)((int)preview.x + 138), (float)((int)preview.y + 24) }, 18.0f, 1.0f, ColorAlpha(MD_ON_SURFACE_VARIANT, 0.9f));
     }
 
     if (locked) {
@@ -482,22 +513,22 @@ static void DrawLevelCard(Rectangle bounds, const LevelEntry *entry, const Level
 
     DrawLevelPreview(preview, cfg, entry->accent, locked, entry->available);
 
-    DrawTextLeftFitted(TextFormat("Level %d", levelIndex + 1),
+    DrawTextLeftFitted(TextFormat("关卡 %d", levelIndex + 1),
                        (Rectangle){ bounds.x + 18, bounds.y + 114, bounds.width - 36, 18 }, 15, 12,
                        locked ? MD_ON_SURFACE_VARIANT : entry->accent);
     DrawTextLeftFitted(entry->title, (Rectangle){ bounds.x + 18, bounds.y + 134, bounds.width - 36, 28 }, 24, 16, MD_ON_SURFACE);
     DrawTextLeftFitted(entry->subtitle, (Rectangle){ bounds.x + 18, bounds.y + 164, bounds.width - 36, 20 }, 16, 12, MD_ON_SURFACE_VARIANT);
 
     if (!entry->available) {
-        DrawTextLeftFitted("Placeholder slot for future content",
+        DrawTextLeftFitted("神秘新关卡，敬请期待！",
                            (Rectangle){ bounds.x + 18, (float)footerY, bounds.width - 36, 16 }, statusFontSize, 11, MD_ON_SURFACE_VARIANT);
     } else if (locked) {
-        DrawTextLeftFitted("Beat the previous level to unlock",
+        DrawTextLeftFitted("通关上一关卡解锁",
                            (Rectangle){ bounds.x + 18, (float)footerY, bounds.width - 36, 16 }, statusFontSize, 11, MD_ON_SURFACE_VARIANT);
     } else {
-        const char *selectionLabel = selected ? "Selected" : "Tap to select";
+        const char *selectionLabel = selected ? "已选中" : "点击选择";
 
-        DrawTextLeftFitted("Best rating", (Rectangle){ bounds.x + 18, (float)footerY, 96, 16 }, statusFontSize, 11, MD_ON_SURFACE_VARIANT);
+        DrawTextLeftFitted("最好成绩", (Rectangle){ bounds.x + 18, (float)footerY, 96, 16 }, statusFontSize, 11, MD_ON_SURFACE_VARIANT);
         DrawStarsRow((Vector2){ bounds.x + 64, bounds.y + bounds.height - 14.0f }, levelProgress.stars[levelIndex], 3, 18.0f, 7.0f,
                      GOLD, ColorAlpha(MD_OUTLINE, 0.45f));
         DrawTextRightFitted(selectionLabel, (Rectangle){ bounds.x + 126, (float)footerY, bounds.width - 144, 16 }, statusFontSize, 11,
@@ -525,12 +556,12 @@ static void DrawLevelSelectScreen(int width, int height, GameScreen *screen, boo
     if (endIndex > TOTAL_LEVELS) endIndex = TOTAL_LEVELS;
 
     Gui_DrawCard(header, 5.0f);
-    DrawTextLeftFitted("SELECT A LEVEL", (Rectangle){ header.x + 28, header.y + 18, 280, 30 }, 30, 22, MD_ON_SURFACE);
-    DrawTextLeftFitted(TextFormat("Page %d / %d", currentLevelPage + 1, pageCount),
+    DrawTextLeftFitted("关卡选择", (Rectangle){ header.x + 28, header.y + 18, 280, 30 }, 30, 22, MD_ON_SURFACE);
+    DrawTextLeftFitted(TextFormat("第 %d / %d 页", currentLevelPage + 1, pageCount),
                        (Rectangle){ header.x + 28, header.y + 52, 120, 20 }, 18, 14, MD_PRIMARY);
-    DrawTextRightFitted(TextFormat("%d / %d unlocked", levelProgress.unlockedLevels, TOTAL_LEVELS),
+    DrawTextRightFitted(TextFormat("%d / %d 已解锁", levelProgress.unlockedLevels, TOTAL_LEVELS),
                         (Rectangle){ header.x + header.width - 220, header.y + 22, 190, 20 }, 18, 13, MD_ON_SURFACE_VARIANT);
-    DrawTextLeftFitted("Preview six stages at a time, then launch directly into play.",
+    DrawTextLeftFitted("每页可预览六个关卡，直接点击开启挑战！",
                        (Rectangle){ header.x + 180, header.y + 52, header.width - 420, 20 }, 18, 12, MD_ON_SURFACE_VARIANT);
 
     for (int local = 0; local < LEVELS_PER_PAGE; local++) {
@@ -557,31 +588,31 @@ static void DrawLevelSelectScreen(int width, int height, GameScreen *screen, boo
     Gui_DrawCard(selectionInfo, 1.0f);
     DrawTextLeftFitted(gLevels[selectedLevelIndex].title,
                        (Rectangle){ selectionInfo.x + 16, selectionInfo.y + 8, selectionInfo.width - 114, 24 }, 22, 15, MD_ON_SURFACE);
-    DrawTextLeftFitted(selectedLocked ? "Locked or unavailable" : "Ready to launch",
+    DrawTextLeftFitted(selectedLocked ? "关卡尚未解锁" : "蓄势待发",
                        (Rectangle){ selectionInfo.x + 16, selectionInfo.y + 30, selectionInfo.width - 114, 16 }, 14, 11, MD_ON_SURFACE_VARIANT);
     if (!selectedLocked) {
         DrawStarsRow((Vector2){ selectionInfo.x + selectionInfo.width - 58.0f, selectionInfo.y + 28.0f },
                      levelProgress.stars[selectedLevelIndex], 3, 16.0f, 6.0f, GOLD, ColorAlpha(MD_OUTLINE, 0.45f));
     }
 
-    if (DrawActionButton(backButton, "Back", MD_SECONDARY_CONTAINER, MD_ON_SECONDARY_CONTAINER)) {
+    if (DrawActionButton(backButton, "返回", MD_SECONDARY_CONTAINER, MD_ON_SECONDARY_CONTAINER)) {
         *screen = SCREEN_HOME;
     }
 
-    if (currentLevelPage > 0 && DrawActionButton(prevButton, "Previous", MD_SURFACE, MD_ON_SURFACE)) {
+    if (currentLevelPage > 0 && DrawActionButton(prevButton, "上一页", MD_SURFACE, MD_ON_SURFACE)) {
         currentLevelPage--;
     } else {
-        Gui_DrawButton(prevButton, "Previous", MD_SURFACE_VARIANT, MD_ON_SURFACE_VARIANT);
+        Gui_DrawButton(prevButton, "上一页", MD_SURFACE_VARIANT, MD_ON_SURFACE_VARIANT);
     }
 
-    if (currentLevelPage + 1 < pageCount && DrawActionButton(nextButton, "Next", MD_SURFACE, MD_ON_SURFACE)) {
+    if (currentLevelPage + 1 < pageCount && DrawActionButton(nextButton, "下一页", MD_SURFACE, MD_ON_SURFACE)) {
         currentLevelPage++;
     } else {
-        Gui_DrawButton(nextButton, "Next", MD_SURFACE_VARIANT, MD_ON_SURFACE_VARIANT);
+        Gui_DrawButton(nextButton, "下一页", MD_SURFACE_VARIANT, MD_ON_SURFACE_VARIANT);
     }
 
     Gui_DrawButton(startButton,
-                   selectedLocked ? "Locked" : "Play Selected",
+                   selectedLocked ? "尚未解锁" : "开启挑战",
                    selectedLocked ? MD_SURFACE_VARIANT : MD_PRIMARY,
                    selectedLocked ? MD_ON_SURFACE_VARIANT : MD_ON_PRIMARY);
     if (!selectedLocked && Gui_IsClicked(startButton)) {
@@ -594,21 +625,22 @@ static void DrawGameplayTopBar(int width, GameScreen *screen, bool *levelLoaded,
     Rectangle levelsButton = { 20, 18, 150, 50 };
     Rectangle restartButton = { 182, 18, 150, 50 };
 
-    if (DrawActionButton(levelsButton, "Levels", MD_SURFACE, MD_ON_SURFACE)) {
+    if (DrawActionButton(levelsButton, "返回选关", MD_SURFACE, MD_ON_SURFACE)) {
         UnloadLevel(physics, entities);
         *levelLoaded = false;
         *screen = SCREEN_LEVEL_SELECT;
+        EnsureSelectedLevelIsUnlocked();
     }
-    if (DrawActionButton(restartButton, "Restart", MD_PRIMARY_CONTAINER, MD_ON_PRIMARY_CONTAINER)) {
+    if (DrawActionButton(restartButton, "重新开始", MD_PRIMARY_CONTAINER, MD_ON_PRIMARY_CONTAINER)) {
         *levelLoaded = false;
     }
 
     Gui_DrawCard(titleCard, 3.0f);
     DrawTextLeftFitted(gLevels[selectedLevelIndex].title,
                        (Rectangle){ titleCard.x + 22, titleCard.y + 10, 200, 24 }, 22, 15, MD_ON_SURFACE);
-    DrawTextRightFitted(TextFormat("Best stars: %d", levelProgress.stars[selectedLevelIndex]),
+    DrawTextRightFitted(TextFormat("历史最高：%d 星", levelProgress.stars[selectedLevelIndex]),
                         (Rectangle){ titleCard.x + 250, titleCard.y + 10, 240, 24 }, 18, 13, MD_PRIMARY);
-    DrawTextLeftFitted("Reduced gravity. Click flying birds to trigger abilities.",
+    DrawTextLeftFitted("当前处于低重力状态。在小鸟飞出后点击屏幕，即可触发特殊技能！",
                        (Rectangle){ titleCard.x + 22, titleCard.y + 40, titleCard.width - 44, 18 }, 14, 10, MD_ON_SURFACE_VARIANT);
 }
 
@@ -620,42 +652,56 @@ static void DrawGameplayOverlay(int width, int height, bool outOfBirds, GameScre
     Rectangle levelsButton = { overlay.x + 30, overlay.y + 196, 150, 52 };
     Rectangle replayButton = { overlay.x + 260, overlay.y + 196, 150, 52 };
     const char *winLines[] = {
-        "Your best rating has been updated",
-        "on the level select page."
+        "恭喜！你的历史最高记录已更新，",
+        "快去选关主页面看看吧！"
     };
     const char *loseLines[] = {
-        "No birds left. Replay or head back",
-        "to level select."
+        "所有小鸟都已发射完毕。你可以选择",
+        "重新开始，或是返回关卡列表。"
     };
 
     DrawRectangle(0, 0, width, height, ColorAlpha(BLACK, 0.18f));
     Gui_DrawCard(overlay, 8.0f);
-    DrawTextLeftFitted(levelWon ? "LEVEL CLEARED" : "TRY AGAIN",
+    DrawTextLeftFitted(levelWon ? "恭喜通关！" : "再接再厉！",
                        (Rectangle){ overlay.x + 40, overlay.y + 30, overlay.width - 80, 36 }, 34, 24,
                        levelWon ? DARKGREEN : MAROON);
     DrawTextBlockFitted((Rectangle){ overlay.x + 40, overlay.y + 84, overlay.width - 80, 60 },
                         levelWon ? winLines : loseLines, 2, 20, 14, 6, MD_ON_SURFACE_VARIANT);
 
     if (levelWon) {
-        DrawTextLeftFitted("Stars earned", (Rectangle){ overlay.x + 40, overlay.y + 134, 140, 22 }, 18, 14, MD_PRIMARY);
+        DrawTextLeftFitted("本次获得", (Rectangle){ overlay.x + 40, overlay.y + 134, 140, 22 }, 18, 14, MD_PRIMARY);
         DrawStarsRow((Vector2){ overlay.x + overlay.width * 0.5f, overlay.y + 176 }, currentRunStars, 3, 34.0f, 13.0f,
                      GOLD, ColorAlpha(MD_OUTLINE, 0.45f));
     }
 
-    if (DrawActionButton(levelsButton, "Levels", MD_SECONDARY_CONTAINER, MD_ON_SECONDARY_CONTAINER)) {
+    if (DrawActionButton(levelsButton, "返回选关", MD_SECONDARY_CONTAINER, MD_ON_SECONDARY_CONTAINER)) {
         UnloadLevel(physics, entities);
         *levelLoaded = false;
         *screen = SCREEN_LEVEL_SELECT;
+        EnsureSelectedLevelIsUnlocked();
     }
-    if (DrawActionButton(replayButton, "Replay", MD_PRIMARY, MD_ON_PRIMARY)) {
+    if (DrawActionButton(replayButton, "再来一次", MD_PRIMARY, MD_ON_PRIMARY)) {
         *levelLoaded = false;
     }
 }
 
+static void InitChineseFont(void) {
+    const char *chinese_glyphs = 
+        "一三上下不与世两个中主义二于人以伟低体作你便倾入全六共关具典再冲决准凑出击分列利别制刷刺前力加势升协单卡即历厉压原去双发叠只可史合后吧启告味和哨喜器四回圣在地场坊坚型垒城基堡塔塞墙壁处复多大天头好如始威字守完宏定实宫宴家密射小尚局层屏山峨巍工左巨已布带幕并度座廊开式引弹强当录形彩役往待得御心快态怒恭惊愤戏成我或战所手打扣技投拥择按挑挤捷排接推摧操擎放数整新易星是更最有期木未术杂材来松极构柱标核梯次欢正步殊毁每毕水汁求沿波泰泻洗混渐游火炸点爆版物特状狂狱玩玻理琐璃璧用畅界疾登的盘盛直相看瞄瞬石破硬碎碧神秘空穿突立第简精紧繁级纪纯线终经结绩编置考耸背能自致般艺获蓄蓝藏表袭裂装要览角解触记诗请质足轰轻辑输返进连迷追退选透逐通速都采重量铁锁锋键长门闪闭间防阻降限险隐雨雷需霆面页顶顽预颗风飞验高魔鸟鸣黄黑鼎鼠齐"
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        ".,?!:;-_=/\\*#%&()[]{}|<>+！：。，| ";
+    int codepointsCount = 0;
+    int *codepoints = LoadCodepoints(chinese_glyphs, &codepointsCount);
+    gFont = LoadFontEx("assets/simhei.ttf", 48, codepoints, codepointsCount);
+    UnloadCodepoints(codepoints);
+}
+
 int main(void) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(1600, 900, "Angry Birds - Original Experience");
+    InitWindow(1600, 900, "愤怒的小鸟 - 经典原版体验");
     SetTargetFPS(60);
+
+    InitChineseFont();
 
     InitLevelEntries();
     LoadLevelPreviews();
@@ -692,9 +738,9 @@ int main(void) {
         if (screen == SCREEN_HOME) {
             if (IsKeyPressed(KEY_ENTER)) {
                 screen = SCREEN_LEVEL_SELECT;
+                EnsureSelectedLevelIsUnlocked();
             }
         } else if (screen == SCREEN_LEVEL_SELECT) {
-            EnsureSelectedLevelIsUnlocked();
             if (IsKeyPressed(KEY_ESCAPE)) {
                 screen = SCREEN_HOME;
             }
@@ -812,6 +858,7 @@ int main(void) {
 
     UnloadRenderTexture(target);
     UnloadLevel(&physics, &entities);
+    UnloadFont(gFont);
     CloseWindow();
     return 0;
 }

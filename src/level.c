@@ -83,8 +83,36 @@ static void BuildCastle(EntityManager *em, float x, float groundY, int floors, L
 
     for (int f = 0; f < floors; f++) {
         BlockType m1 = GetRandomMaterial(cfg);
-        BlockType m2 = GetRandomMaterial(cfg);
+        BlockType m2 = m1;
+        
+        // Correctly account for the second column's material by drawing it from the pool if available
+        if (m1 == BLOCK_WOOD && cfg->woodBlocks > 0) {
+            cfg->woodBlocks--;
+        } else if (m1 == BLOCK_STONE && cfg->stoneBlocks > 0) {
+            cfg->stoneBlocks--;
+        } else if (m1 == BLOCK_GLASS && cfg->glassBlocks > 0) {
+            cfg->glassBlocks--;
+        } else {
+            // Fallback: If no matching material remains in the pool, draw a random one
+            m2 = GetRandomMaterial(cfg);
+        }
+        
         BlockType m3 = GetRandomMaterial(cfg);
+        if (f < floors - 1 && m3 == BLOCK_GLASS) {
+            // Glass cannot be used as a ceiling (beam) of non-top floors. Swap it for wood or stone if possible
+            int otherTotal = cfg->woodBlocks + cfg->stoneBlocks;
+            if (otherTotal > 0) {
+                cfg->glassBlocks++; // Return the glass block to the pool
+                int r = GetRandomValue(1, otherTotal);
+                if (r <= cfg->woodBlocks) {
+                    cfg->woodBlocks--;
+                    m3 = BLOCK_WOOD;
+                } else {
+                    cfg->stoneBlocks--;
+                    m3 = BLOCK_STONE;
+                }
+            }
+        }
         float columnCenterY = supportTopY - columnHeight * 0.5f;
         float beamCenterY = supportTopY - columnHeight - beamHeight * 0.5f;
         float pigCenterY = supportTopY - pigRadius - pigPadding;

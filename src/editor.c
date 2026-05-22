@@ -25,9 +25,9 @@ void Editor_Update(Editor *ed, EntityManager *em, PhysicsWorld *world) {
 
 void Editor_Draw(Editor *ed) {
     if (!ed->active) {
-        DrawText("TAB for Editor", 10, 10, 18, DARKGRAY);
+        DrawTextEx(gFont, "按 TAB 键打开编辑器", (Vector2){ 10.0f, 10.0f }, 18.0f, 1.0f, DARKGRAY);
     } else {
-        DrawText("EDITOR ON | LEFT CLICK TO PLACE | TAB TO CLOSE", 10, 10, 18, RED);
+        DrawTextEx(gFont, "编辑器已开启 | 左键点击放置 | 按 TAB 键关闭", (Vector2){ 10.0f, 10.0f }, 18.0f, 1.0f, RED);
     }
 }
 

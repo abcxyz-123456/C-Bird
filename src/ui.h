@@ -3,6 +3,8 @@
 
 #include "raylib.h"
 
+extern Font gFont;
+
 // Material Design 3 Palette (Tonal Palettes)
 #define MD_PRIMARY (Color){ 103, 80, 164, 255 }
 #define MD_ON_PRIMARY (Color){ 255, 255, 255, 255 }

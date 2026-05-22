@@ -44,11 +44,11 @@ void Gui_DrawButton(Rectangle bounds, const char *text, Color baseColor, Color t
     
     // Text
     int fontSize = 20;
-    while (fontSize > 12 && MeasureText(text, fontSize) > bounds.width - 24) {
+    while (fontSize > 12 && MeasureTextEx(gFont, text, (float)fontSize, 1.0f).x > bounds.width - 24) {
         fontSize--;
     }
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, bounds.x + (bounds.width - textWidth)/2, bounds.y + (bounds.height - fontSize)/2, fontSize, textColor);
+    int textWidth = (int)MeasureTextEx(gFont, text, (float)fontSize, 1.0f).x;
+    DrawTextEx(gFont, text, (Vector2){ bounds.x + (bounds.width - textWidth)/2, bounds.y + (bounds.height - fontSize)/2 }, (float)fontSize, 1.0f, textColor);
 }
 
 void Gui_DrawIconButton(Rectangle bounds, int icon, Color baseColor) {
@@ -88,8 +88,8 @@ void Gui_DrawLevelButton(Rectangle bounds, int levelNum, int stars, bool locked)
         char txt[10];
         sprintf(txt, "%d", levelNum);
         int fontSize = 32;
-        int tw = MeasureText(txt, fontSize);
-        DrawText(txt, bounds.x + (bounds.width - tw)/2, bounds.y + 20, fontSize, MD_ON_PRIMARY_CONTAINER);
+        int tw = (int)MeasureTextEx(gFont, txt, (float)fontSize, 1.0f).x;
+        DrawTextEx(gFont, txt, (Vector2){ bounds.x + (bounds.width - tw)/2, bounds.y + 20 }, (float)fontSize, 1.0f, MD_ON_PRIMARY_CONTAINER);
         
         // Stars
         float starSize = 15;

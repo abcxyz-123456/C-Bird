@@ -1,0 +1,18 @@
+{
+  "birds": {
+    "red": 1,
+    "blue": 0,
+    "yellow": 2,
+    "black": 2
+  },
+  "pigs": 4,
+  "castle": 1,
+  "floor": [
+    4
+  ],
+  "blocks": {
+    "wood": 2,
+    "stone": 10,
+    "glass": 0
+  }
+}

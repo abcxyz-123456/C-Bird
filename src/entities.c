@@ -48,8 +48,10 @@ static Vector2 GetHalfExtents(const Entity *e) {
     }
     if (e->type == ENTITY_BLOCK) {
         Vector2 half = Vector2Scale(e->size, 0.5f);
-        float ca = fabsf(cosf(e->angle));
-        float sa = fabsf(sinf(e->angle));
+        float angle = e->angle;
+        if (fabsf(angle) < 0.04f) angle = 0.0f; // Deadzone to prevent AABB expansion from microscopic tilts
+        float ca = fabsf(cosf(angle));
+        float sa = fabsf(sinf(angle));
         return (Vector2){
             ca * half.x + sa * half.y,
             sa * half.x + ca * half.y
@@ -68,25 +70,42 @@ static bool IsRectEntity(const Entity *e) {
     return e->type == ENTITY_BLOCK || e->type == ENTITY_PLATFORM;
 }
 
-static float GetDamageMultiplier(const Entity *a, const Entity *b) {
-    if (a->type == ENTITY_BIRD && a->subType.birdType == BIRD_BLUE &&
-        b->type == ENTITY_BLOCK && b->subType.blockType == BLOCK_GLASS) {
+static float GetEntityDamageMultiplier(const Entity *e, const Entity *other) {
+    // Special high damage for blue bird vs glass
+    if (e->type == ENTITY_BLOCK && e->subType.blockType == BLOCK_GLASS &&
+        other->type == ENTITY_BIRD && other->subType.birdType == BIRD_BLUE) {
         return 6.0f;
     }
-    if (b->type == ENTITY_BIRD && b->subType.birdType == BIRD_BLUE &&
-        a->type == ENTITY_BLOCK && a->subType.blockType == BLOCK_GLASS) {
-        return 6.0f;
+
+    // Structural collisions (block vs block, or block vs platform)
+    if (e->type == ENTITY_BLOCK) {
+        if (other->type == ENTITY_BLOCK || other->type == ENTITY_PLATFORM) {
+            return 0.05f; // Block takes very little damage from structural impacts/settling to keep bottom layers safe
+        }
+        if (other->type == ENTITY_PIG) {
+            return 0.02f; // Block takes practically no damage from squishing a pig
+        }
     }
 
     return 1.0f;
 }
 
 static void ApplyDamageFromImpulse(Entity *a, Entity *b, float impulseMagnitude) {
-    if (impulseMagnitude <= 40.0f) return;
+    // Structural collisions (block vs block or block vs platform) require a much higher threshold
+    // so indirect forces and normal settling do not damage bottom layers.
+    float threshold = 40.0f;
+    bool isStructural = (a->type == ENTITY_BLOCK || a->type == ENTITY_PLATFORM) &&
+                        (b->type == ENTITY_BLOCK || b->type == ENTITY_PLATFORM);
+    if (isStructural) {
+        threshold = 280.0f; // High threshold for structural settling
+    }
 
-    float damage = (impulseMagnitude / 15.0f) * GetDamageMultiplier(a, b);
-    a->health -= damage;
-    b->health -= damage;
+    if (impulseMagnitude <= threshold) return;
+
+    float damageA = (impulseMagnitude / 15.0f) * GetEntityDamageMultiplier(a, b);
+    float damageB = (impulseMagnitude / 15.0f) * GetEntityDamageMultiplier(b, a);
+    a->health -= damageA;
+    b->health -= damageB;
 }
 
 static void ApplyDamageFromCollision(Entity *a, Entity *b, float normalImpulse, float tangentImpulse) {
@@ -113,7 +132,7 @@ static void ApplyCollisionImpulse(Entity *a, Entity *b, Vector2 normal, float pe
 
     bool restingSupport = fabsf(normal.y) > 0.75f &&
                           fabsf(velAlongNormal) < 38.0f &&
-                          penetration < 6.0f &&
+                          penetration < 12.0f &&
                           a->type != ENTITY_BIRD &&
                           b->type != ENTITY_BIRD;
     float angularScale = restingSupport ? 0.0f : 1.0f;
@@ -126,6 +145,7 @@ static void ApplyCollisionImpulse(Entity *a, Entity *b, Vector2 normal, float pe
     float bias = 0.0f;
     if (penetration > 0.02f) {
         bias = 120.0f * (penetration - 0.02f); // Robust corrective force
+        if (bias > 150.0f) bias = 150.0f;      // Cap the corrective velocity to prevent explosive launches
     }
 
     float raCrossN = Cross2D(ra, normal);
@@ -229,7 +249,7 @@ Entity* Entities_AddPig(EntityManager *em, Vector2 pos) {
 
     e->type = ENTITY_PIG;
     e->pos = pos;
-    e->health = 40.0f;
+    e->health = 100.0f; // Make the pig's life tougher (increased from 40.0f)
     e->mass = 1.5f;
     e->invMass = 1.0f/e->mass;
     e->radius = 18.0f;
@@ -489,16 +509,35 @@ void Entities_Update(EntityManager *em, float dt) {
             e->angVel *= ANGULAR_DAMPING;
 
             if (e->type == ENTITY_BLOCK) {
-                if (fabsf(e->vel.x) < 6.0f && fabsf(e->vel.y) < 8.0f && fabsf(e->angVel) < 0.25f) {
-                    e->angVel *= 0.85f;
+                if (fabsf(e->vel.x) < 8.0f && fabsf(e->vel.y) < 12.0f && fabsf(e->angVel) < 0.35f) {
+                    e->angVel *= 0.80f;
                     if (fabsf(e->angVel) < 0.02f) {
                         e->angVel = 0.0f;
                     }
-                    e->vel.x *= 0.90f;
+                    e->vel.x *= 0.85f;
                     if (fabsf(e->vel.x) < 0.05f) {
                         e->vel.x = 0.0f;
                     }
+                    
+                    // Snap the angle to the nearest 90-degree state to align visual rendering with AABB physics.
+                    // If the deviation is small, lock it instantly to prevent continuous spring oscillation (jitter).
+                    float nearest90 = roundf(e->angle / (PI * 0.5f)) * (PI * 0.5f);
+                    float diff = nearest90 - e->angle;
+                    if (fabsf(diff) < 0.087f) { // Instant lock at 5 degrees (0.087 radians) to prevent jitter loop
+                        e->angle = nearest90; 
+                    } else {
+                        e->angle += diff * 0.15f; // Smooth interpolation if larger
+                    }
                 }
+                
+                // Restrict the maximum wobble deviation to ~12.6 degrees (0.22 rad) from the nearest 90-degree angle.
+                // This keeps blocks feeling structural and prevents "impossible" floating or extreme diagonal angles.
+                float nearest90 = roundf(e->angle / (PI * 0.5f)) * (PI * 0.5f);
+                float diff = e->angle - nearest90;
+                const float maxWobble = 0.22f; 
+                if (diff > maxWobble) e->angle = nearest90 + maxWobble;
+                if (diff < -maxWobble) e->angle = nearest90 - maxWobble;
+
                 if (e->angle > PI) e->angle -= 2.0f * PI;
                 if (e->angle < -PI) e->angle += 2.0f * PI;
             }
