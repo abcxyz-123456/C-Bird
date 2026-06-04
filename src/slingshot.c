@@ -37,7 +37,7 @@ Entity* Slingshot_Update(Slingshot *s, EntityManager *em, PhysicsWorld *world, V
             if (Vector2Length(launch) > 10.0f) {
                 launchedBird = Entities_AddBird(em, s->basePos, s->activeBird);
                 if (launchedBird) {
-                    const float power = 6.1f;
+                    const float power = 7.0f;
                     launchedBird->vel.x = launch.x * power;
                     launchedBird->vel.y = launch.y * power;
                 }
