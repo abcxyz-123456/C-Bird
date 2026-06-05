@@ -77,7 +77,7 @@ static void BuildCastle(EntityManager *em, float x, float groundY, int floors, L
     const float beamWidth = 100.0f;
     const float beamHeight = 16.0f;
     const float pigRadius = 18.0f;
-    const float pigPadding = 2.0f;
+    const float pigPadding = 0.0f;
     const float columnOffsetX = 35.0f;
     float supportTopY = groundY;
 

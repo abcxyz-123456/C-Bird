@@ -1,9 +1,9 @@
 {
   "birds": {
-    "red": 1,
+    "red": 2,
     "blue": 0,
-    "yellow": 1,
-    "black": 1
+    "yellow": 2,
+    "black": 2
   },
   "pigs": 3,
   "castle": 1,

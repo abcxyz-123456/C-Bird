@@ -144,8 +144,8 @@ static void ApplyCollisionImpulse(Entity *a, Entity *b, Vector2 normal, float pe
     // before velocities exceed the resting state threshold.
     float bias = 0.0f;
     if (penetration > 0.02f) {
-        bias = 120.0f * (penetration - 0.02f); // Robust corrective force
-        if (bias > 150.0f) bias = 150.0f;      // Cap the corrective velocity to prevent explosive launches
+        bias = 60.0f * (penetration - 0.02f); // Gentler corrective force
+        if (bias > 40.0f) bias = 40.0f;       // Cap the corrective velocity to prevent explosive launches
     }
 
     float raCrossN = Cross2D(ra, normal);
@@ -249,7 +249,7 @@ Entity* Entities_AddPig(EntityManager *em, Vector2 pos) {
 
     e->type = ENTITY_PIG;
     e->pos = pos;
-    e->health = 100.0f; // Make the pig's life tougher (increased from 40.0f)
+    e->health = 40.0f;
     e->mass = 1.5f;
     e->invMass = 1.0f/e->mass;
     e->radius = 18.0f;
