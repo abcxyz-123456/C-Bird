@@ -29,6 +29,7 @@ _deps/
 *.pdb
 *.ilk
 *.exp
+*.zip
 
 # IDE Specific
 .vscode/

@@ -90,6 +90,8 @@ static float GetEntityDamageMultiplier(const Entity *e, const Entity *other) {
     return 1.0f;
 }
 
+#include <stdio.h>
+
 static void ApplyDamageFromImpulse(Entity *a, Entity *b, float impulseMagnitude) {
     // Structural collisions (block vs block or block vs platform) require a much higher threshold
     // so indirect forces and normal settling do not damage bottom layers.
@@ -249,7 +251,7 @@ Entity* Entities_AddPig(EntityManager *em, Vector2 pos) {
 
     e->type = ENTITY_PIG;
     e->pos = pos;
-    e->health = 40.0f;
+    e->health = 50.0f;
     e->mass = 1.5f;
     e->invMass = 1.0f/e->mass;
     e->radius = 18.0f;
@@ -271,19 +273,19 @@ Entity* Entities_AddBlock(EntityManager *em, Vector2 pos, Vector2 size, BlockTyp
 
     switch (type) {
         case BLOCK_STONE:
-            e->mass = 15.0f;
+            e->mass = 10.0f;
             e->color = GRAY;
             e->health = 250.0f;
             e->friction = 0.65f;
             break;
         case BLOCK_WOOD:
-            e->mass = 5.0f;
+            e->mass = 7.0f;
             e->color = DARKBROWN;
             e->health = 80.0f;
             e->friction = 0.68f;
             break;
         case BLOCK_GLASS:
-            e->mass = 3.2f;
+            e->mass = 5.0f;
             e->color = (Color){ 150, 230, 255, 180 };
             e->health = 25.0f;
             e->friction = 0.48f;

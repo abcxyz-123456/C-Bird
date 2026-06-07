@@ -696,7 +696,42 @@ static void InitChineseFont(void) {
     UnloadCodepoints(codepoints);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    if (argc > 1 && strcmp(argv[1], "--test") == 0) {
+        printf("--- RUNNING DIAGNOSTIC TEST ---\n");
+        const char *levelPath = "assets/levels/level13.json";
+        if (argc > 2) {
+            levelPath = argv[2];
+        }
+        printf("Loading level: %s\n", levelPath);
+        PhysicsWorld *pw = Physics_Init();
+        EntityManager *em = Entities_Init();
+        LevelConfig cfg;
+        Level_Load(levelPath, &cfg);
+        ShuffleBirds(&cfg);
+        Level_GenerateScene(pw, em, &cfg);
+        printf("Initial entities count: %d\n", em->count);
+        for (int i = 0; i < em->count; i++) {
+            Entity *e = &em->entities[i];
+            printf("Entity %d: type=%d, subType=%d, pos=(%.1f, %.1f), mass=%.1f, health=%.1f, active=%d\n",
+                   i, e->type, e->type == ENTITY_BLOCK ? e->subType.blockType : 0, e->pos.x, e->pos.y, e->mass, e->health, e->active);
+        }
+        printf("Starting simulation...\n");
+        for (int frame = 0; frame < 120; frame++) {
+            Physics_Update(em, 1.0f/60.0f);
+        }
+        printf("Simulation finished.\n");
+        printf("Final entities status:\n");
+        for (int i = 0; i < em->count; i++) {
+            Entity *e = &em->entities[i];
+            printf("Entity %d: type=%d, subType=%d, pos=(%.1f, %.1f), health=%.1f, active=%d\n",
+                   i, e->type, e->type == ENTITY_BLOCK ? e->subType.blockType : 0, e->pos.x, e->pos.y, e->health, e->active);
+        }
+        Physics_Cleanup(pw);
+        Entities_Cleanup(em);
+        return 0;
+    }
+
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1600, 900, "愤怒的小鸟 - 经典原版体验");
     SetTargetFPS(60);

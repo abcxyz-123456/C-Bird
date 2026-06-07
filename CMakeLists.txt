@@ -15,16 +15,6 @@ FetchContent_Declare(
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(raylib)
 
-# Chipmunk2D
-FetchContent_Declare(
-    chipmunk
-    GIT_REPOSITORY https://github.com/slembcke/Chipmunk2D.git
-    GIT_TAG        Chipmunk-7.0.3
-)
-set(BUILD_DEMOS OFF CACHE BOOL "" FORCE)
-set(INSTALL_DEMOS OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(chipmunk)
-
 # cJSON
 FetchContent_Declare(
     cjson
@@ -37,18 +27,19 @@ FetchContent_MakeAvailable(cjson)
 # Application Sources
 file(GLOB SOURCES "src/*.c")
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
+
+# Set the output name of the executable to bird-release
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "bird-release")
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     src
     ${raylib_SOURCE_DIR}/src
-    ${chipmunk_SOURCE_DIR}/include
     ${cjson_SOURCE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     raylib
-    chipmunk
     cjson
 )
 
@@ -56,8 +47,18 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 if(MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE winmm)
 elseif(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE winmm gdi32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE winmm gdi32 -static)
 endif()
 
 # Copy assets to build directory
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+
+# Custom target to package the release executable and assets into a zip archive
+add_custom_target(package_release
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_SOURCE_DIR}/bird-release.zip
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_SOURCE_DIR}/bird-release/README.md
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bird-release
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/bird-release.exe ${CMAKE_SOURCE_DIR}/bird-release/bird-release.exe
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_SOURCE_DIR}/bird-release/assets
+    COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_SOURCE_DIR}/bird-release.zip --format=zip ${CMAKE_SOURCE_DIR}/bird-release
+)
